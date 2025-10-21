@@ -19,4 +19,4 @@ python-jose[cryptography]==3.3.0
 email_validator==2.3.0
 python-chess==1.999
 stockfish==3.28.0
-dotenv==1.1.1
+python-dotenv==1.1.1
