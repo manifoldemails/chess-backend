@@ -12,9 +12,9 @@ router = APIRouter(prefix="/chess", tags=["Chess"])
 # Assume this script is at /path/to/your/project/some_folder/your_script.py
 SCRIPT_DIR = os.path.dirname(__file__)
 # This line correctly moves up one directory
-STOCKFISH_MAC_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "../bin/stockfish_mac/stockfish-macos-m1-apple-silicon"))
-STOCKFISH_PATH = os.getenv("STOCKFISH_PATH", STOCKFISH_MAC_PATH)
+STOCKFISH_MAC_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "../bin/stockfish_ubuntu/stockfish-ubuntu-x86-64-avx2"))
 #STOCKFISH_UBUNTU_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "../bin/stockfish_ubuntu/stockfish-ubuntu-x86-64-avx2")) # The Linux binary name
+STOCKFISH_PATH = os.getenv("STOCKFISH_PATH", STOCKFISH_MAC_PATH)
 
 @router.post("/move", response_model=MoveResponse)
 def make_move(request: MoveRequest):
