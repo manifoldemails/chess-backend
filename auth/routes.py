@@ -5,14 +5,20 @@ from database import get_session
 from models import User
 from auth.schemas import UserCreate, UserLogin, Token
 from passlib.context import CryptContext
-from jose import jwt
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
 import datetime
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 SECRET_KEY = "manifoldchess"  # later store in env variable
 ALGORITHM = "HS256"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+from stockfish import Stockfish
+
+
 
 # Helper: hash password
 def hash_password(password: str) -> str:
@@ -60,3 +66,14 @@ def login(data: UserLogin, session: Session = Depends(get_session)):
 
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+def verify_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # user info, etc.
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
