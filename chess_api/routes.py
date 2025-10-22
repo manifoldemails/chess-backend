@@ -43,6 +43,8 @@ def make_move(request: MoveRequest):
         if board.is_game_over():
             return MoveResponse(fen=board.fen(), bot_move="")
 
+        # Print the final path used (THIS WILL APPEAR IN RENDER LOGS)
+        print(f"DEBUG: Attempting to use Stockfish at path: {STOCKFISH_PATH}")
         # Run Stockfish to get bot move
         # Initialize Python Stockfish
         stockfish = Stockfish(path=STOCKFISH_PATH,parameters={"Threads": 2, "Minimum Thinking Time": 30})
