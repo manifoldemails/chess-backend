@@ -12,6 +12,8 @@ from chess_api.routes import router as chess_router
 origins = [
     "http://localhost:5173",
     "https://localhost:5173",
+    "https://chessolympic.web.app",
+    "http://chessolympic.web.app"
 ]
 
 #load enviornment variables
