@@ -12,13 +12,14 @@ router = APIRouter(prefix="/chess", tags=["Chess"])
 # Assume this script is at /path/to/your/project/some_folder/your_script.py
 SCRIPT_DIR = os.path.dirname(__file__)
 # This line correctly moves up one directory
-STOCKFISH_MAC_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "../bin/stockfish_mac/stockfish-macos-m1-apple-silicon"))
+STOCKFISH_MAC_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "./bin/stockfish_mac/stockfish-macos-m1-apple-silicon"))
 #STOCKFISH_UBUNTU_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "../bin/stockfish_ubuntu/stockfish-ubuntu-x86-64-avx2")) # The Linux binary name
 STOCKFISH_PATH = os.getenv("STOCKFISH_PATH", STOCKFISH_MAC_PATH)
 
 @router.post("/move", response_model=MoveResponse)
 def make_move(request: MoveRequest):
     try:
+        result = None
         # Handle the start position safely
         if request.fen.strip().lower() in ["start", "", None]:
             board = chess.Board()  # start position
@@ -42,21 +43,45 @@ def make_move(request: MoveRequest):
         # Apply player move
         board.push(uci_move)
 
-        # Check for game over
-        if board.is_game_over():
-            return MoveResponse(fen=board.fen(), bot_move="")
+        # Check if the player's move ended the game
+        if board.is_checkmate():
+            return MoveResponse(fen=board.fen(), bot_move="", result="Checkmate! You win 🎉")
+        elif board.is_stalemate():
+            return MoveResponse(fen=board.fen(), bot_move="", result="Stalemate 🤝")
+        elif board.is_insufficient_material():
+            return MoveResponse(fen=board.fen(), bot_move="", result="Draw (insufficient material)")
+        elif board.is_seventyfive_moves():
+            return MoveResponse(fen=board.fen(), bot_move="", result="Draw (75-move rule)")
+        elif board.is_fivefold_repetition():
+            return MoveResponse(fen=board.fen(), bot_move="", result="Draw (fivefold repetition)")
 
-        # Print the final path used (THIS WILL APPEAR IN RENDER LOGS)
-        print(f"DEBUG: Attempting to use Stockfish at path: {STOCKFISH_PATH}")
-        # Run Stockfish to get bot move
-        # Initialize Python Stockfish
-        stockfish = Stockfish(path=STOCKFISH_PATH,parameters={"Threads": 2, "Minimum Thinking Time": 30})
+        #  Bot makes its move only if game not over
+        stockfish = Stockfish(path=STOCKFISH_PATH, parameters={"Threads": 2, "Minimum Thinking Time": 30,"Skill Level": request.difficulty})
         stockfish.set_fen_position(board.fen())
         best_move = stockfish.get_best_move()
 
-        board.push(chess.Move.from_uci(best_move))
+        if not best_move:
+            return MoveResponse(fen=board.fen(), bot_move="", result="Game over - no legal moves for bot")
 
-        return MoveResponse(fen=board.fen(), bot_move=best_move)
+        bot_move = chess.Move.from_uci(best_move)
+        board.push(bot_move)
+
+        # Recheck if the bot caused checkmate
+        if board.is_checkmate():
+            result = "Checkmate! Bot wins 🤖"
+        elif board.is_stalemate():
+            result = "Stalemate 🤝"
+        elif board.is_insufficient_material():
+            result = "Draw (insufficient material)"
+        elif board.is_seventyfive_moves():
+            result = "Draw (75-move rule)"
+        elif board.is_fivefold_repetition():
+            result = "Draw (fivefold repetition)"
+        else:
+            result = None
+
+        return MoveResponse(fen=board.fen(), bot_move=best_move, result=result)
+
 
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Invalid FEN: {request.fen}")
